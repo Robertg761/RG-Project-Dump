@@ -22,7 +22,7 @@ export function Hero() {
           transition={{ duration: 1, delay: 0.5 }}
           className="text-5xl md:text-7xl font-extrabold tracking-tighter drop-shadow-lg"
         >
-          Welcome to the <span className="text-accent">Project Hub</span>
+          Welcome to the <span className="text-accent">Project Dump</span>
         </motion.h1>
 
         <motion.p

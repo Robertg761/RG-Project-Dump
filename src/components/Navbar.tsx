@@ -24,12 +24,12 @@ export function Navbar() {
       initial={{ y: -100, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.8, ease: "easeOut" }}
-      className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-4 bg-background/80 backdrop-blur-md border-b border-white/10"
+      className="fixed top-0 left-0 right-0 z-50 grid grid-cols-[1fr_auto_1fr] items-center px-6 py-4 bg-background/80 backdrop-blur-md border-b border-white/10"
     >
-      <div className="text-xl font-bold tracking-tighter">
+      <div className="col-start-1 justify-self-start text-xl font-bold tracking-tighter">
         <Link href="/">RG PROJECT DUMP</Link>
       </div>
-      <nav className="hidden md:flex gap-8">
+      <nav className="col-start-2 hidden justify-self-center md:flex md:items-center md:gap-8">
         <Link href="/#home" className="text-sm font-medium text-white/70 hover:text-white transition-colors">
           Home
         </Link>
@@ -40,7 +40,7 @@ export function Navbar() {
           Contact
         </Link>
       </nav>
-      <div className="flex gap-4">
+      <div className="col-start-3 flex justify-self-end gap-4">
         <Link href="https://github.com/Robertg761" target="_blank" rel="noopener noreferrer" className="text-white/70 hover:text-white transition-colors">
           <Github size={20} />
         </Link>
