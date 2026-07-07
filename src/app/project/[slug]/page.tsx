@@ -7,10 +7,12 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, Github, Star, GitFork, AlertCircle, Calendar, Download } from "lucide-react";
 import { TableOfContents } from "@/components/TableOfContents";
 import { ProjectMediaGallery } from "@/components/ProjectMediaGallery";
+import { DownloadCounter } from "@/components/DownloadCounter";
 import {
   extractProjectImages,
   getAllPublicProjects,
   getProjectDetail,
+  GITHUB_OWNER,
   stripProjectImages,
   toProjectSlug,
 } from "@/lib/projects";
@@ -202,7 +204,7 @@ export default async function ProjectPage({ params }: PageProps) {
     notFound();
   }
 
-  const { repoData, readme, branch, latestRelease } = data;
+  const { repoData, readme, branch, latestRelease, totalDownloads } = data;
   const images = extractProjectImages(readme, repoData.name, branch);
   const cleanReadme = stripProjectImages(readme);
   const filteredReleaseAssets = latestRelease
@@ -235,6 +237,7 @@ export default async function ProjectPage({ params }: PageProps) {
           </p>
 
           <div className="flex flex-wrap items-center gap-4 text-sm font-medium text-white/70 mb-12">
+            <DownloadCounter owner={GITHUB_OWNER} repo={repoData.name} initialCount={totalDownloads} />
             {repoData.language && (
               <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-sm">
                 <span className="w-2.5 h-2.5 rounded-full bg-accent shadow-[0_0_10px_rgba(59,130,246,0.8)]" />

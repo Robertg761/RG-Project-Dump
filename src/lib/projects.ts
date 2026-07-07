@@ -1,7 +1,7 @@
 import { promises as fs } from "node:fs";
 import { join } from "node:path";
 
-const GITHUB_OWNER = process.env.GITHUB_OWNER?.trim() || "Robertg761";
+export const GITHUB_OWNER = process.env.GITHUB_OWNER?.trim() || "Robertg761";
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN?.trim() || "";
 const GITHUB_API_BASE = "https://api.github.com";
 const EXCLUDED_REPOSITORY_KEYS = new Set(["rgtools"]);
@@ -56,6 +56,7 @@ interface GitHubReleaseAsset {
   browser_download_url?: string;
   size?: number;
   state?: string;
+  download_count?: number;
 }
 
 interface ProjectReleaseAsset {
@@ -89,6 +90,7 @@ interface ProjectDetail {
   readme: string;
   branch: string;
   latestRelease: ProjectRelease | null;
+  totalDownloads: number | null;
 }
 
 const latestReleaseCache = new Map<string, Promise<GitHubRelease | null>>();
@@ -336,6 +338,36 @@ async function fetchLatestRepoRelease(repoName: string): Promise<GitHubRelease |
   return request;
 }
 
+async function fetchRepoTotalDownloads(repoName: string): Promise<number | null> {
+  let total = 0;
+  let sawAnyRelease = false;
+
+  for (let page = 1; page <= 10; page += 1) {
+    const releases = await fetchGitHubJson<GitHubRelease[]>(
+      `${GITHUB_API_BASE}/repos/${encodeURIComponent(
+        GITHUB_OWNER
+      )}/${encodeURIComponent(repoName)}/releases?per_page=100&page=${page}`
+    );
+
+    if (!releases || releases.length === 0) {
+      break;
+    }
+
+    sawAnyRelease = true;
+    for (const release of releases) {
+      for (const asset of release.assets ?? []) {
+        total += typeof asset.download_count === "number" ? asset.download_count : 0;
+      }
+    }
+
+    if (releases.length < 100) {
+      break;
+    }
+  }
+
+  return sawAnyRelease ? total : null;
+}
+
 async function fetchAllPublicRepos(): Promise<GitHubRepo[]> {
   const repos: GitHubRepo[] = [];
 
@@ -487,14 +519,15 @@ export async function getProjectDetail(repoNameOrSlug: string): Promise<ProjectD
     return null;
   }
 
-  const [readme, latestReleaseRaw] = await Promise.all([
+  const [readme, latestReleaseRaw, totalDownloads] = await Promise.all([
     fetchRepoReadme(repoData.name),
     fetchLatestRepoRelease(repoData.name),
+    fetchRepoTotalDownloads(repoData.name),
   ]);
   const branch = repoData.default_branch || "main";
   const latestRelease = toProjectRelease(latestReleaseRaw);
 
-  return { repoData, readme, branch, latestRelease };
+  return { repoData, readme, branch, latestRelease, totalDownloads };
 }
 
 function resolveRelativeImageUrl(url: string, repoName: string, branch: string) {
