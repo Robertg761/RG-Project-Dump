@@ -21,7 +21,9 @@ interface PageProps {
   params: Promise<{ slug: string }>;
 }
 
-export const dynamicParams = false;
+// ISR: allow on-demand generation of new repos and refresh every 6 hours.
+export const dynamicParams = true;
+export const revalidate = 21600;
 
 interface ReleaseAsset {
   id: number;
