@@ -252,6 +252,7 @@ export default async function ProjectPage({ params }: PageProps) {
 
   const { repoData, readme, branch, latestRelease, totalDownloads } = data;
   const displayReadme = stripBadgeImages(readme);
+  const headingCount = (displayReadme.match(/^#{2,3}\s+/gm) ?? []).length;
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "SoftwareSourceCode",
@@ -444,10 +445,12 @@ export default async function ProjectPage({ params }: PageProps) {
       </div>
 
       <div className="max-w-6xl mx-auto px-6 py-20 flex flex-col lg:flex-row gap-12 xl:gap-16">
-        {/* Table of Contents - Left Column */}
-        <div className="hidden lg:block lg:w-56 shrink-0">
-          <TableOfContents markdown={displayReadme} />
-        </div>
+        {/* Table of Contents - Left Column (only when the README has headings) */}
+        {headingCount > 0 && (
+          <div className="hidden lg:block lg:w-56 shrink-0">
+            <TableOfContents markdown={displayReadme} />
+          </div>
+        )}
 
         {/* Main Content / Text Blurbs */}
         <div className="flex-1 min-w-0">
@@ -474,7 +477,7 @@ export default async function ProjectPage({ params }: PageProps) {
                   // Only add custom bullets to unordered lists, let ordered lists use default decimal
                   <li className="text-xl text-white/70">{props.children}</li>
                 ),
-                a: ({ ...props }) => <a className="text-accent hover:text-accent/80 transition-colors underline underline-offset-4 decoration-accent/30 hover:decoration-accent" target="_blank" rel="noopener noreferrer" {...props} />,
+                a: ({ ...props }) => <a className="text-accent hover:text-accent/80 transition-colors underline underline-offset-4 decoration-accent/30 hover:decoration-accent break-words" target="_blank" rel="noopener noreferrer" {...props} />,
                 img: ({ src, alt }) => {
                   if (typeof src !== "string" || !src) {
                     return null;

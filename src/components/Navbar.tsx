@@ -62,13 +62,13 @@ export function Navbar() {
           ))}
         </nav>
 
-        <div className="col-start-3 flex items-center justify-self-end gap-4">
+        <div className="col-start-3 -mr-2 flex items-center justify-self-end gap-1">
           <Link
             href="https://github.com/Robertg761"
             target="_blank"
             rel="noopener noreferrer"
             aria-label="GitHub profile"
-            className="text-white/70 hover:text-white transition-colors"
+            className="rounded-lg p-2 text-white/70 hover:bg-white/5 hover:text-white transition-colors"
           >
             <Github size={20} />
           </Link>
@@ -77,7 +77,7 @@ export function Navbar() {
             target="_blank"
             rel="noopener noreferrer"
             aria-label="X (Twitter) profile"
-            className="text-white/70 hover:text-white transition-colors"
+            className="rounded-lg p-2 text-white/70 hover:bg-white/5 hover:text-white transition-colors"
           >
             <XLogo size={20} />
           </Link>
@@ -87,7 +87,7 @@ export function Navbar() {
             aria-label={open ? "Close menu" : "Open menu"}
             aria-expanded={open}
             aria-controls="mobile-nav"
-            className="md:hidden text-white/70 hover:text-white transition-colors"
+            className="rounded-lg p-2 text-white/70 hover:bg-white/5 hover:text-white transition-colors md:hidden"
           >
             {open ? <X size={22} /> : <Menu size={22} />}
           </button>

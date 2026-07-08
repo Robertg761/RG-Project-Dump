@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { ExternalLink, Bug, TerminalSquare } from "lucide-react";
+import { ExternalLink, Bug, TerminalSquare, Tag } from "lucide-react";
 import Link from "next/link";
 import type { Project } from "@/lib/projects";
 
@@ -36,9 +36,12 @@ export function Projects({ projects }: ProjectsProps) {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {projects.map((project, idx) => {
           const isLatestRelease = project.version.startsWith("Latest Release:");
+          const versionLabel = isLatestRelease
+            ? project.version.replace(/^Latest Release:\s*/, "")
+            : project.version;
           const versionBadgeClass = isLatestRelease
-            ? "text-xs font-mono px-2 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30"
-            : "text-xs font-mono px-2 py-1 rounded-full bg-white/10 text-white/70";
+            ? "inline-flex items-center gap-1.5 self-start shrink-0 whitespace-nowrap text-xs font-mono px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30"
+            : "inline-flex items-center gap-1.5 self-start shrink-0 whitespace-nowrap text-xs font-mono px-2.5 py-1 rounded-full bg-white/10 text-white/70 border border-white/10";
 
           return (
           <motion.div
@@ -52,20 +55,21 @@ export function Projects({ projects }: ProjectsProps) {
             <div className="absolute inset-0 bg-gradient-to-br from-accent/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             
             <div className="relative z-10 flex flex-col h-full">
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <TerminalSquare className="text-accent" size={24} />
-                  <h3 className="text-2xl font-bold">
+              <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div className="flex items-center gap-3 min-w-0">
+                  <TerminalSquare className="text-accent shrink-0" size={24} />
+                  <h3 className="text-2xl font-bold leading-tight min-w-0">
                     <Link
                       href={`/project/${encodeURIComponent(project.repoName)}`}
-                      className="hover:text-accent transition-colors"
+                      className="hover:text-accent transition-colors break-words"
                     >
                       {project.title}
                     </Link>
                   </h3>
                 </div>
                 <span className={versionBadgeClass}>
-                  {project.version}
+                  {isLatestRelease && <Tag size={11} />}
+                  {versionLabel}
                 </span>
               </div>
               
