@@ -1,0 +1,10 @@
+{
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "www.rgprojectdump.ca" }],
+      "destination": "https://rgprojectdump.ca/:path*",
+      "permanent": true
+    }
+  ]
+}
