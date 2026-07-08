@@ -4,7 +4,9 @@ import { join } from "node:path";
 export const GITHUB_OWNER = process.env.GITHUB_OWNER?.trim() || "Robertg761";
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN?.trim() || "";
 const GITHUB_API_BASE = "https://api.github.com";
-const EXCLUDED_REPOSITORY_KEYS = new Set(["rgtools"]);
+// Repos hidden from the site. Keys are normalized (lowercased, alphanumerics
+// only) — e.g. "RG-Project-Dump" -> "rgprojectdump" hides this site's own repo.
+const EXCLUDED_REPOSITORY_KEYS = new Set(["rgtools", "rgprojectdump"]);
 const STAR_WEIGHT = 0.55;
 const RECENCY_WEIGHT = 0.45;
 const GITHUB_RETRY_STATUSES = new Set([403, 429, 500, 502, 503, 504]);
