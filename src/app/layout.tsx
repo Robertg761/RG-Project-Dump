@@ -3,8 +3,8 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
-import { EarlyBuildBanner } from "@/components/EarlyBuildBanner";
 import { GoogleAnalytics } from "@/components/GoogleAnalytics";
+import { MotionProvider } from "@/components/MotionProvider";
 
 const siteUrl = new URL("https://rgprojectdump.ca");
 const socialImageUrl = new URL("/og-image.png", siteUrl);
@@ -65,15 +65,20 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased selection:bg-blue-500 selection:text-white`}
       >
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[200] focus:rounded-full focus:bg-white focus:px-4 focus:py-2 focus:font-semibold focus:text-black"
+        >
+          Skip to content
+        </a>
         <GoogleAnalytics />
-        <Navbar />
-        <div className="pt-20">
-          <EarlyBuildBanner />
-        </div>
-        <main className="min-h-screen">
-          {children}
-        </main>
-        <Footer />
+        <MotionProvider>
+          <Navbar />
+          <main id="main-content" className="min-h-screen">
+            {children}
+          </main>
+          <Footer />
+        </MotionProvider>
       </body>
     </html>
   );

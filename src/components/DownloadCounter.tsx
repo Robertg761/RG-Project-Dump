@@ -82,7 +82,9 @@ export function DownloadCounter({
     }
 
     const initialTimer = setTimeout(poll, 4000);
-    const interval = setInterval(poll, 180000);
+    // Refresh every 30 minutes — frequent enough to feel live without hammering
+    // GitHub's unauthenticated rate limit from every visitor's browser.
+    const interval = setInterval(poll, 30 * 60 * 1000);
 
     return () => {
       active = false;

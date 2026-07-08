@@ -135,6 +135,11 @@ async function readBuildProjectCache(maxAgeMs?: number) {
 }
 
 async function writeBuildProjectCache(projects: Project[]) {
+  // Never persist an empty result — a transient GitHub failure must not wipe
+  // the last known-good cache and blank the whole site.
+  if (projects.length === 0) {
+    return;
+  }
   try {
     const payload: ProjectCachePayload = {
       updatedAt: Date.now(),
@@ -444,6 +449,16 @@ async function loadAllPublicProjects(): Promise<Project[]> {
 
   const repos = await fetchAllPublicRepos();
 
+  if (repos.length === 0) {
+    // Transient GitHub failure returned no repos. Prefer the last good cache
+    // over serving an empty site.
+    const fallback = await readBuildProjectCache();
+    if (fallback && fallback.length > 0) {
+      return fallback;
+    }
+    return [];
+  }
+
   const releases = await mapWithConcurrency(
     repos,
     RELEASE_FETCH_CONCURRENCY,
@@ -530,7 +545,25 @@ export async function getProjectDetail(repoNameOrSlug: string): Promise<ProjectD
   return { repoData, readme, branch, latestRelease, totalDownloads };
 }
 
-function resolveRelativeImageUrl(url: string, repoName: string, branch: string) {
+// Lightweight repo lookup for generateMetadata — only the repo record, no
+// README/releases/downloads. The underlying fetch is deduplicated with the
+// page's own fetch within a single request.
+export async function getRepoMeta(repoNameOrSlug: string): Promise<GitHubRepo | null> {
+  const repoName = fromProjectSlug(repoNameOrSlug);
+  const repoData = await fetchGitHubJson<GitHubRepo>(
+    `${GITHUB_API_BASE}/repos/${encodeURIComponent(
+      GITHUB_OWNER
+    )}/${encodeURIComponent(repoName)}`
+  );
+
+  if (!repoData || repoData.private || isExcludedRepository(repoData.name)) {
+    return null;
+  }
+
+  return repoData;
+}
+
+export function resolveReadmeImageUrl(url: string, repoName: string, branch: string) {
   if (url.startsWith("http") || url.startsWith("data:")) {
     return url;
   }
@@ -568,33 +601,52 @@ export function extractProjectImages(markdown: string, repoName: string, branch:
     images.push(match[1].trim());
   }
 
-  const ignoredPatterns = [
-    /shields\.io/i,
-    /badge/i,
-    /travis-ci/i,
-    /circleci/i,
-    /sonarcloud/i,
-    /codecov/i,
-    /coveralls/i,
-    /appveyor/i,
-    /opencollective/i,
-    /ko-fi/i,
-    /buymeacoffee/i,
-    /sponsor/i,
-    /license/i,
-    /actions\/workflows/i,
-    /github\.com\/.*\/badges\//i,
-    /github\.com\/.*\/actions\//i,
-    /\.svg/i,
-  ];
-
   return Array.from(new Set(images))
-    .filter((url) => !ignoredPatterns.some((pattern) => pattern.test(url)))
-    .map((url) => resolveRelativeImageUrl(url, repoName, branch));
+    .filter((url) => !isBadgeImage(url))
+    .map((url) => resolveReadmeImageUrl(url, repoName, branch));
 }
 
 export function stripProjectImages(markdown: string) {
   const markdownImageRegex = /!\[.*?\]\(([^)]+)\)/g;
   const htmlImageRegex = /<img[^>]*>/gi;
   return markdown.replace(markdownImageRegex, "").replace(htmlImageRegex, "");
+}
+
+// Badge / shield / CI images we never want to surface as project screenshots.
+// Note: a blanket `.svg` filter is intentionally NOT here — legitimate diagrams
+// and screenshots are often SVGs and should render.
+const BADGE_IMAGE_PATTERNS = [
+  /shields\.io/i,
+  /badge/i,
+  /travis-ci/i,
+  /circleci/i,
+  /sonarcloud/i,
+  /codecov/i,
+  /coveralls/i,
+  /appveyor/i,
+  /opencollective/i,
+  /ko-fi/i,
+  /buymeacoffee/i,
+  /sponsor/i,
+  /license/i,
+  /actions\/workflows/i,
+  /github\.com\/.*\/badges\//i,
+  /github\.com\/.*\/actions\//i,
+];
+
+export function isBadgeImage(url: string) {
+  return BADGE_IMAGE_PATTERNS.some((pattern) => pattern.test(url));
+}
+
+// Remove only badge/shield images (CI, license, sponsor, etc.) from README
+// markdown, leaving real content images in place so they can render inline.
+export function stripBadgeImages(markdown: string) {
+  const linkedBadge = /\[!\[[^\]]*\]\(([^)]+)\)\]\([^)]+\)/g;
+  const markdownImage = /!\[[^\]]*\]\(([^)]+)\)/g;
+  const htmlImage = /<img[^>]+src=["']([^"']+)["'][^>]*>/gi;
+
+  return markdown
+    .replace(linkedBadge, (full, imageUrl) => (isBadgeImage(imageUrl.trim()) ? "" : full))
+    .replace(markdownImage, (full, imageUrl) => (isBadgeImage(imageUrl.trim()) ? "" : full))
+    .replace(htmlImage, (full, imageUrl) => (isBadgeImage(imageUrl.trim()) ? "" : full));
 }

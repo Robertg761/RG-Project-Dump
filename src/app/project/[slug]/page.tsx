@@ -1,19 +1,22 @@
+import type { Metadata } from "next";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
+import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
 import rehypeSlug from "rehype-slug";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Github, Star, GitFork, AlertCircle, Calendar, Download } from "lucide-react";
 import { TableOfContents } from "@/components/TableOfContents";
-import { ProjectMediaGallery } from "@/components/ProjectMediaGallery";
+import { ImageLightbox } from "@/components/ImageLightbox";
 import { DownloadCounter } from "@/components/DownloadCounter";
 import {
-  extractProjectImages,
   getAllPublicProjects,
   getProjectDetail,
+  getRepoMeta,
   GITHUB_OWNER,
-  stripProjectImages,
+  resolveReadmeImageUrl,
+  stripBadgeImages,
   toProjectSlug,
 } from "@/lib/projects";
 
@@ -21,9 +24,50 @@ interface PageProps {
   params: Promise<{ slug: string }>;
 }
 
+// Sanitize raw README HTML (defense-in-depth: strips <script>, event handlers,
+// javascript: URLs) while keeping the elements READMEs actually use. Runs after
+// rehypeRaw and before rehypeSlug so generated heading ids stay clean for the TOC.
+const readmeSanitizeSchema = {
+  ...defaultSchema,
+  clobberPrefix: "",
+  tagNames: [...(defaultSchema.tagNames ?? []), "details", "summary"],
+};
+
 // ISR: allow on-demand generation of new repos and refresh every 6 hours.
 export const dynamicParams = true;
 export const revalidate = 21600;
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { slug } = await params;
+  const repo = await getRepoMeta(slug);
+
+  if (!repo) {
+    return { title: "Project not found" };
+  }
+
+  const description =
+    repo.description?.trim() ||
+    `${repo.name} — source code, releases, and downloads on RG Project Dump.`;
+  const canonical = `/project/${toProjectSlug(repo.name)}/`;
+  const ogTitle = `${repo.name} | RG Project Dump`;
+
+  return {
+    title: repo.name,
+    description,
+    alternates: { canonical },
+    openGraph: {
+      title: ogTitle,
+      description,
+      url: canonical,
+      type: "website",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: ogTitle,
+      description,
+    },
+  };
+}
 
 interface ReleaseAsset {
   id: number;
@@ -207,8 +251,21 @@ export default async function ProjectPage({ params }: PageProps) {
   }
 
   const { repoData, readme, branch, latestRelease, totalDownloads } = data;
-  const images = extractProjectImages(readme, repoData.name, branch);
-  const cleanReadme = stripProjectImages(readme);
+  const displayReadme = stripBadgeImages(readme);
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "SoftwareSourceCode",
+    name: repoData.name,
+    description: repoData.description || undefined,
+    codeRepository: repoData.html_url,
+    programmingLanguage: repoData.language || undefined,
+    url: `https://rgprojectdump.ca/project/${toProjectSlug(repoData.name)}/`,
+    author: {
+      "@type": "Person",
+      name: GITHUB_OWNER,
+      url: `https://github.com/${GITHUB_OWNER}`,
+    },
+  };
   const filteredReleaseAssets = latestRelease
     ? latestRelease.assets.filter((asset) => !isNoiseAsset(asset.name))
     : [];
@@ -224,6 +281,10 @@ export default async function ProjectPage({ params }: PageProps) {
 
   return (
     <div className="min-h-screen pb-24">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       {/* Hero Section */}
       <div className="relative pt-32 pb-20 px-6 border-b border-white/10 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-accent/20 via-background to-background z-0" />
@@ -382,10 +443,10 @@ export default async function ProjectPage({ params }: PageProps) {
         </div>
       </div>
 
-      <div className="max-w-[90rem] mx-auto px-6 py-20 flex flex-col lg:flex-row gap-12 xl:gap-16">
+      <div className="max-w-6xl mx-auto px-6 py-20 flex flex-col lg:flex-row gap-12 xl:gap-16">
         {/* Table of Contents - Left Column */}
-        <div className="hidden lg:block lg:w-48 xl:w-64 shrink-0">
-          <TableOfContents markdown={cleanReadme} />
+        <div className="hidden lg:block lg:w-56 shrink-0">
+          <TableOfContents markdown={displayReadme} />
         </div>
 
         {/* Main Content / Text Blurbs */}
@@ -400,7 +461,7 @@ export default async function ProjectPage({ params }: PageProps) {
           <article className="text-lg leading-relaxed text-white/80 font-light">
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
-              rehypePlugins={[rehypeRaw, rehypeSlug]}
+              rehypePlugins={[rehypeRaw, [rehypeSanitize, readmeSanitizeSchema], rehypeSlug]}
               components={{
                 h1: () => null, // Hide H1 since we use the repo name in the hero
                 h2: ({ ...props }) => <h3 className="text-3xl font-bold text-white mt-16 mb-6 tracking-tight" {...props} />,
@@ -414,14 +475,32 @@ export default async function ProjectPage({ params }: PageProps) {
                   <li className="text-xl text-white/70">{props.children}</li>
                 ),
                 a: ({ ...props }) => <a className="text-accent hover:text-accent/80 transition-colors underline underline-offset-4 decoration-accent/30 hover:decoration-accent" target="_blank" rel="noopener noreferrer" {...props} />,
+                img: ({ src, alt }) => {
+                  if (typeof src !== "string" || !src) {
+                    return null;
+                  }
+                  const resolved = resolveReadmeImageUrl(src, repoData.name, branch);
+                  return (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={resolved}
+                      alt={alt || `${repoData.name} screenshot`}
+                      loading="lazy"
+                      data-zoomable=""
+                      className="my-8 block w-full max-w-3xl mx-auto h-auto rounded-2xl border border-white/10 shadow-2xl bg-black/40 cursor-zoom-in"
+                    />
+                  );
+                },
                 blockquote: ({ ...props }) => (
                   <blockquote className="pl-6 border-l-4 border-accent/50 italic text-white/60 my-10 py-4 bg-gradient-to-r from-accent/5 to-transparent rounded-r-2xl" {...props} />
                 ),
                 code(props) {
                   const { children, className, ...rest } = props;
                   const match = /language-(\w+)/.exec(className || "");
-                  // Consider it an inline code block if it doesn't have a specific language class
-                  const isInline = !match && !className?.includes("language-");
+                  const hasLanguage = Boolean(match) || Boolean(className?.includes("language-"));
+                  // Fenced blocks without a language carry no language class, so
+                  // also treat any multi-line snippet as a block (not inline code).
+                  const isInline = !hasLanguage && !String(children ?? "").includes("\n");
 
                   return isInline ? (
                     <code className="bg-white/10 text-accent px-2 py-1 rounded-md font-mono text-[0.9em]" {...rest}>
@@ -451,23 +530,13 @@ export default async function ProjectPage({ params }: PageProps) {
                 td: ({ ...props }) => <td className="px-6 py-4 border-b border-white/5 text-white/70" {...props} />,
               }}
             >
-              {cleanReadme}
+              {displayReadme}
             </ReactMarkdown>
           </article>
         </div>
-
-        {/* Media Gallery Column */}
-        <div className="lg:w-64 xl:w-80 shrink-0">
-          <div className="sticky top-32 space-y-8">
-            <h3 className="text-sm font-bold text-white/40 uppercase tracking-[0.2em] mb-8 flex items-center gap-4">
-              Project Media
-              <div className="h-px bg-white/10 flex-grow" />
-            </h3>
-
-            <ProjectMediaGallery images={images} />
-          </div>
-        </div>
       </div>
+
+      <ImageLightbox scopeSelector="article" />
     </div>
   );
 }

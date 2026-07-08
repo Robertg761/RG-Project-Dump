@@ -41,6 +41,6 @@ This site is wired for Google Analytics 4 through `NEXT_PUBLIC_GA_MEASUREMENT_ID
 
 1. Create a GA4 web data stream and copy its Measurement ID (format: `G-XXXXXXXXXX`).
 2. Local development: add `NEXT_PUBLIC_GA_MEASUREMENT_ID=G-XXXXXXXXXX` to `.env.local`.
-3. Production (GitHub Pages): set a repository secret named `NEXT_PUBLIC_GA_MEASUREMENT_ID` with the same value.
+3. Production (Vercel): add an environment variable named `NEXT_PUBLIC_GA_MEASUREMENT_ID` with the same value in the Vercel project settings.
 
 If the env var is missing, analytics is automatically disabled.
