@@ -3,7 +3,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Github, Menu, X } from "lucide-react";
 
 function XLogo({ size = 20 }: { size?: number }) {
@@ -30,6 +30,26 @@ export function Navbar() {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   const [lastPath, setLastPath] = useState(pathname);
+  const [activeSection, setActiveSection] = useState("home");
+
+  // Scrollspy: highlight the nav link for the section currently in view.
+  // Only relevant on the home page, where the anchor sections live.
+  useEffect(() => {
+    if (pathname !== "/") return;
+    const sections = NAV_LINKS
+      .map((link) => document.getElementById(link.href.replace("/#", "")))
+      .filter((el): el is HTMLElement => el !== null);
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) setActiveSection(entry.target.id);
+        }
+      },
+      { rootMargin: "-40% 0px -55% 0px" }
+    );
+    sections.forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, [pathname]);
 
   // Close the mobile menu on route change — done during render (React's
   // recommended pattern) rather than in an effect.
@@ -51,15 +71,27 @@ export function Navbar() {
         </div>
 
         <nav className="col-start-2 hidden justify-self-center md:flex md:items-center md:gap-8">
-          {NAV_LINKS.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className="text-sm font-medium text-white/70 hover:text-white transition-colors"
-            >
-              {link.label}
-            </Link>
-          ))}
+          {NAV_LINKS.map((link) => {
+            const isActive = pathname === "/" && link.href === `/#${activeSection}`;
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={`relative text-sm font-medium transition-colors ${
+                  isActive ? "text-white" : "text-white/70 hover:text-white"
+                }`}
+              >
+                {link.label}
+                {isActive && (
+                  <motion.span
+                    layoutId="nav-underline"
+                    className="absolute -bottom-1.5 left-0 right-0 h-px bg-accent"
+                    transition={{ type: "spring", stiffness: 400, damping: 35 }}
+                  />
+                )}
+              </Link>
+            );
+          })}
         </nav>
 
         <div className="col-start-3 -mr-2 flex items-center justify-self-end gap-1">
