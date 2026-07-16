@@ -24,6 +24,14 @@ interface PageProps {
   params: Promise<{ slug: string }>;
 }
 
+const PROJECT_PAGE_TITLES: Record<string, string> = {
+  "HA-Desktop-Widget": "Home Assistant Desktop App & Widget for Windows, macOS and Linux",
+};
+
+function getProjectPageTitle(repoName: string) {
+  return PROJECT_PAGE_TITLES[repoName] ?? repoName;
+}
+
 // Sanitize raw README HTML (defense-in-depth: strips <script>, event handlers,
 // javascript: URLs) while keeping the elements READMEs actually use. Runs after
 // rehypeRaw and before rehypeSlug so generated heading ids stay clean for the TOC.
@@ -49,10 +57,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     repo.description?.trim() ||
     `${repo.name} — source code, releases, and downloads on RG Project Dump.`;
   const canonical = `/project/${toProjectSlug(repo.name)}/`;
-  const ogTitle = `${repo.name} | RG Project Dump`;
+  const pageTitle = getProjectPageTitle(repo.name);
+  const ogTitle = `${pageTitle} | RG Project Dump`;
 
   return {
-    title: repo.name,
+    title: pageTitle,
     description,
     alternates: { canonical },
     openGraph: {
@@ -295,7 +304,9 @@ export default async function ProjectPage({ params }: PageProps) {
             Back to RG Project Dump
           </Link>
 
-          <h1 className="text-5xl md:text-7xl font-extrabold tracking-tighter mb-6 text-white drop-shadow-sm">{repoData.name}</h1>
+          <h1 className="text-5xl md:text-7xl font-extrabold tracking-tighter mb-6 text-white drop-shadow-sm">
+            {getProjectPageTitle(repoData.name)}
+          </h1>
           <p className="text-xl md:text-2xl text-white/70 max-w-3xl leading-relaxed mb-10 font-light">
             {repoData.description || "No description provided for this repository."}
           </p>
