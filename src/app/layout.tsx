@@ -29,6 +29,9 @@ export const metadata: Metadata = {
   },
   description: siteDescription,
   applicationName: siteTitle,
+  verification: {
+    google: "G6wWnjAIK0hpWVGAKLoYEBDXb40yLaVC3GynNwr5Xko",
+  },
   alternates: {
     canonical: siteUrl,
   },
