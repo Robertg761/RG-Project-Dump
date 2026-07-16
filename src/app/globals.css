@@ -28,6 +28,86 @@ body {
   color: #ffffff;
 }
 
+/* Nebula glows for the hero starfield: large blurred radial gradients that
+   drift and breathe very slowly. Kept dim so the stars stay the focus. */
+.nebula {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  will-change: transform, opacity;
+  animation: nebula-drift 40s ease-in-out infinite alternate;
+}
+
+.nebula-blue {
+  width: 45vw;
+  height: 45vw;
+  top: 5%;
+  left: -10%;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.22), transparent 70%);
+}
+
+.nebula-purple {
+  width: 40vw;
+  height: 40vw;
+  bottom: -5%;
+  right: -8%;
+  background: radial-gradient(circle, rgba(139, 92, 246, 0.18), transparent 70%);
+  animation-duration: 52s;
+  animation-delay: -18s;
+}
+
+.nebula-teal {
+  width: 30vw;
+  height: 30vw;
+  top: 55%;
+  left: 30%;
+  background: radial-gradient(circle, rgba(45, 212, 191, 0.1), transparent 70%);
+  animation-duration: 34s;
+  animation-delay: -9s;
+}
+
+/* Much dimmer glow that carries the space theme into the projects section. */
+.nebula-projects {
+  width: 50vw;
+  height: 50vw;
+  top: 5%;
+  right: -15%;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.07), transparent 70%);
+  animation-duration: 60s;
+}
+
+@keyframes nebula-drift {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 0.7;
+  }
+  50% {
+    transform: translate3d(4vw, -3vh, 0) scale(1.15);
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(-3vw, 2vh, 0) scale(0.95);
+    opacity: 0.75;
+  }
+}
+
+/* Slow blue→purple→teal sweep across the hero's accent text. Under
+   prefers-reduced-motion the animation freezes to a static gradient. */
+.text-shimmer {
+  background: linear-gradient(90deg, #3b82f6, #8b5cf6, #2dd4bf, #8b5cf6, #3b82f6);
+  background-size: 300% 100%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  animation: shimmer 10s linear infinite;
+}
+
+@keyframes shimmer {
+  to {
+    background-position: -300% 0;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;

@@ -11,7 +11,8 @@ interface ProjectsProps {
 
 export function Projects({ projects }: ProjectsProps) {
   return (
-    <section id="projects" className="py-24 px-6 max-w-7xl mx-auto">
+    <section id="projects" className="relative isolate py-24 px-6 max-w-7xl mx-auto">
+      <div className="nebula nebula-projects absolute -z-10 pointer-events-none" aria-hidden="true" />
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
@@ -50,9 +51,23 @@ export function Projects({ projects }: ProjectsProps) {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-50px" }}
             transition={{ duration: 0.5, delay: idx * 0.1 }}
+            whileHover={{ y: -5 }}
+            onMouseMove={(e) => {
+              const r = e.currentTarget.getBoundingClientRect();
+              e.currentTarget.style.setProperty("--mx", `${e.clientX - r.left}px`);
+              e.currentTarget.style.setProperty("--my", `${e.clientY - r.top}px`);
+            }}
             className="group relative p-8 rounded-2xl bg-white/5 border border-white/10 overflow-hidden hover:border-accent/50 transition-colors"
           >
             <div className="absolute inset-0 bg-gradient-to-br from-accent/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            {/* Spotlight that tracks the cursor via the --mx/--my vars set above. */}
+            <div
+              className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+              style={{
+                background:
+                  "radial-gradient(500px circle at var(--mx, 50%) var(--my, 50%), rgba(59, 130, 246, 0.12), transparent 65%)",
+              }}
+            />
             
             <div className="relative z-10 flex flex-col h-full">
               <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
