@@ -21,6 +21,18 @@ const BUILD_CACHE_PATH = join(
 );
 const HOT_BUILD_CACHE_MAX_AGE_MS = 1000 * 60 * 5;
 
+class GitHubRequestError extends Error {
+  readonly status: number;
+  readonly retryable: boolean;
+
+  constructor(status: number, retryable: boolean) {
+    super(`GitHub API request failed with status ${status}.`);
+    this.name = "GitHubRequestError";
+    this.status = status;
+    this.retryable = retryable;
+  }
+}
+
 interface GitHubRepo {
   id: number;
   name: string;
@@ -159,6 +171,8 @@ function wait(ms: number) {
 }
 
 async function fetchGitHubJson<T>(url: string, maxRetries = DEFAULT_MAX_RETRIES): Promise<T | null> {
+  let lastError: unknown = null;
+
   for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
     try {
       const response = await fetch(url, {
@@ -174,19 +188,28 @@ async function fetchGitHubJson<T>(url: string, maxRetries = DEFAULT_MAX_RETRIES)
       }
 
       const isRetryable = GITHUB_RETRY_STATUSES.has(response.status);
+      lastError = new GitHubRequestError(response.status, isRetryable);
       if (!isRetryable || attempt === maxRetries) {
-        return null;
+        throw lastError;
       }
-    } catch {
-      if (attempt === maxRetries) {
-        return null;
-      }
-    }
 
-    await wait(500 * (attempt + 1));
+      await wait(500 * (attempt + 1));
+    } catch (error) {
+      lastError = error;
+      if (error instanceof GitHubRequestError && !error.retryable) {
+        throw error;
+      }
+      if (attempt === maxRetries) {
+        throw error;
+      }
+
+      await wait(500 * (attempt + 1));
+    }
   }
 
-  return null;
+  throw lastError instanceof Error
+    ? lastError
+    : new Error("GitHub API request failed after retries.");
 }
 
 function normalizeTag(value: string) {

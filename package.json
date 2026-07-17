@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build --webpack",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "node --experimental-strip-types --test --test-concurrency=1 tests/*.test.mts"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.7",

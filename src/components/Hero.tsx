@@ -43,7 +43,7 @@ function ParallaxGroup({ enabled, children }: { enabled: boolean; children: Reac
 function ShootingStar({ seed }: { seed: number }) {
   const mesh = useRef<THREE.Mesh>(null!);
   const state = useRef({
-    wait: 2 + seed * 3 + Math.random() * 5,
+    wait: 2 + seed * 4,
     progress: 0,
     origin: new THREE.Vector3(),
     dir: new THREE.Vector3(1, 0, 0),
